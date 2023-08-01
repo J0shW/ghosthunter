@@ -32,13 +32,22 @@ function _draw()
   local tx=flr((i-1)%boardWidth)*tileWidth+boardOffsetX
   -- we use the lua backslash here to divide and floor at the same time
   local ty=flr((i-1)\boardWidth)*tileHeight+boardOffsetY
-  spr(1, tx, ty)
-  spr(2, tx, ty+8)
+  if board[i]==tileStates.empty or board[i]==tileStates.ghost or board[i]==tileStates.curse then
+   spr(1, tx, ty)
+   spr(2, tx, ty+8)
+  elseif board[i]==tileStates.emptyRevealed or board[i]==tileStates.ghostRevealed or board[i]==tileStates.curseRevealed then
+   spr(3, tx, ty)
+   spr(4, tx, ty+8)
+  end
+  
   -- spr(2, flr((i-1)%boardWidth)*8, flr((i-1)%boardHeight)*13+8)
   -- print(board[i], tx+2, ty+3, 7)
 
   if board[i]==tileStates.emptyRevealed then
    countNeighbors(i, tx+3, ty+3)
+  end
+  if board[i]==tileStates.emptyFlagged then
+   spr(19, tx+1, ty-6)
   end
  end
 
