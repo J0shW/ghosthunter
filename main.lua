@@ -9,17 +9,9 @@ function _init()
  boardWidth=7
  boardHeight=6
 
- -- empty=0
- -- emptyFlagged=1
- -- emptyRevealed=2
- -- ghost=3
- -- ghostFlagged=4
- -- ghostRevealed=5
- -- curse=6
- -- curseFlagged=7
- -- curseRevealed=8
  tileStates={empty=0, emptyFlagged=1, emptyRevealed=2, ghost=3, ghostFlagged=4, ghostRevealed=5, curse=6, curseFlagged=7, curseRevealed=8}
-
+ tileWidth=12
+ tileHeight=16
  board={
   3,0,0,0,3,3,0,
   0,0,3,0,0,0,0,
@@ -28,6 +20,8 @@ function _init()
   0,0,0,0,0,0,0,
   0,0,0,3,0,3,3
  }
+ boardOffsetX=20
+ boardOffsetY=20
 
  cursor=1
 end
@@ -35,22 +29,22 @@ end
 function _draw()
  cls(13)
  for i=1,#board do
-  local tx=flr((i-1)%boardWidth)*8
+  local tx=flr((i-1)%boardWidth)*tileWidth+boardOffsetX
   -- we use the lua backslash here to divide and floor at the same time
-  local ty=flr((i-1)\boardWidth)*12
+  local ty=flr((i-1)\boardWidth)*tileHeight+boardOffsetY
   spr(1, tx, ty)
   spr(2, tx, ty+8)
   -- spr(2, flr((i-1)%boardWidth)*8, flr((i-1)%boardHeight)*13+8)
   -- print(board[i], tx+2, ty+3, 7)
 
   if board[i]==tileStates.emptyRevealed then
-   countNeighbors(i, tx+2, ty+3)
+   countNeighbors(i, tx+3, ty+3)
   end
  end
 
- local cx=flr((cursor-1)%boardWidth)*8
- local cy=flr((cursor-1)\boardWidth)*12
- spr(0, cx, cy)
+ local cx=flr((cursor-1)%boardWidth)*tileWidth+boardOffsetX
+ local cy=flr((cursor-1)\boardWidth)*tileHeight+boardOffsetY
+ spr(17, cx-4, cy+2)
 end
    
 function _update()
