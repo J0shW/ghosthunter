@@ -25,25 +25,36 @@ function _init()
  boardOffsetY=20
 
  cursor=1
+
+ gameStates={playing=0, won=1, lost=2}
 end
    
 function _draw()
  cls(13)
 
  -- draw ground
- fillp(0B100000110000100)
- rectfill(15, 15, 104, 117, 61)
- fillp(0)
- rectfill(18, 18, 101, 114, 3)
+ -- fillp(0B100000110000100)
+ -- rectfill(15, 15, 104, 117, 61)
+ -- fillp(0)
+ -- rectfill(18, 18, 101, 114, 3)
 
  -- draw moon
- local moonx=144
- local moony=-20
- fillp(0B100000110000100)
- circfill(moonx, moony, 50, 167)
- fillp(0B1000000000000000)
- circfill(moonx, moony, 45, 167)
- fillp(0)
+ -- local moonx=144
+ -- local moony=-20
+ -- fillp(0B100000110000100)
+ -- circfill(moonx, moony, 50, 167)
+ -- fillp(0B1000000000000000)
+ -- circfill(moonx, moony, 45, 167)
+ -- fillp(0)
+
+ -- switch display based on gamestate
+ if gamestate==gameStates.playing then
+  -- drawBoard()
+ elseif gamestate==gameStates.won then
+  print("you won!", 45, 10, 7)
+ elseif gamestate==gameStates.lost then
+  print("you lost!", 45, 10, 7)
+ end
 
  for i=1,#board do
   local tx=flr((i-1)%boardWidth)*tileWidth+boardOffsetX
@@ -84,6 +95,30 @@ function _draw()
 end
    
 function _update()
+ -- win check
+ local win=true
+ for i=1,#board do
+  -- if there are any empty tiles or ghost tiles left, the player hasn't won yet
+  if board[i]==tileStates.empty or board[i]==tileStates.ghost then
+   win=false
+  end
+ end
+ if win then
+  gamestate=gameStates.won
+ end
+
+ -- lose check
+ local lose=false
+ for i=1,#board do
+  -- if there are any curses revealed, the player has lost
+  if board[i]==tileStates.curseRevealed then
+   lose=true
+  end
+ end
+ if lose then
+  gamestate=gameStates.lost
+ end
+
  local aboveExists=cursor>boardWidth
  local belowExists=cursor<=(boardWidth*boardHeight)-boardWidth
  local leftExists=cursor%boardWidth!=1
@@ -116,11 +151,11 @@ function _update()
   end
  end
  if btnp(🅾️) then
-  if board[cursor]==tileStates.empty then
+  if board[cursor]==tileStates.empty or board[cursor]==tileStates.emptyFlagged then
    board[cursor]=tileStates.emptyRevealed
-  elseif board[cursor]==tileStates.ghost then
+  elseif board[cursor]==tileStates.ghost or board[cursor]==tileStates.ghostFlagged then
    board[cursor]=tileStates.ghostRevealed
-  elseif board[cursor]==tileStates.curse then
+  elseif board[cursor]==tileStates.curse or board[cursor]==tileStates.curseFlagged then
    board[cursor]=tileStates.curseRevealed
   end
  end
