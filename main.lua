@@ -10,6 +10,7 @@ function _init()
  boardHeight=6
 
  tileStates={empty=0, emptyFlagged=1, emptyRevealed=2, ghost=3, ghostFlagged=4, ghostRevealed=5, curse=6, curseFlagged=7, curseRevealed=8}
+ ghostAndCurse={tileStates.ghost, tileStates.ghostFlagged, tileStates.curse, tileStates.curseFlagged}
  tileWidth=12
  tileHeight=16
  board={
@@ -28,13 +29,29 @@ end
    
 function _draw()
  cls(13)
+
+ -- draw ground
+ fillp(0B100000110000100)
+ rectfill(15, 15, 104, 117, 61)
+ fillp(0)
+ rectfill(18, 18, 101, 114, 3)
+
+ -- draw moon
+ local moonx=144
+ local moony=-20
+ fillp(0B100000110000100)
+ circfill(moonx, moony, 50, 167)
+ fillp(0B1000000000000000)
+ circfill(moonx, moony, 45, 167)
+ fillp(0)
+
  for i=1,#board do
   local tx=flr((i-1)%boardWidth)*tileWidth+boardOffsetX
   -- we use the lua backslash here to divide and floor at the same time
   local ty=flr((i-1)\boardWidth)*tileHeight+boardOffsetY
 
 		-- if hidden tile
-  if board[i]==tileStates.empty or board[i]==tileStates.ghost or board[i]==tileStates.curse then
+  if board[i]!=tileStates.emptyRevealed and board[i]!=tileStates.ghostRevealed and board[i]!=tileStates.curseRevealed then
    spr(1, tx, ty)
    spr(2, tx, ty+8)
 
@@ -55,7 +72,7 @@ function _draw()
   if board[i]==tileStates.emptyRevealed then
    countNeighbors(i, tx+3, ty+3)
   end
-  if board[i]==tileStates.emptyFlagged then
+  if board[i]==tileStates.emptyFlagged or board[i]==tileStates.ghostFlagged or board[i]==tileStates.curseFlagged then
    spr(19, tx+1, ty-6)
   end
  end
@@ -127,49 +144,49 @@ function countNeighbors(i, x, y)
 
  if aboveExists then
   -- ghost above
-  if board[i-boardWidth]==tileStates.ghost then
+  if has_value(ghostAndCurse, board[i-boardWidth]) then
    count+=1
   end
  end
  if belowExists then
   -- ghost below
-  if board[i+boardWidth]==tileStates.ghost then
+  if has_value(ghostAndCurse, board[i+boardWidth]) then
    count+=1
   end
  end
  if leftExists then
   -- ghost to the left
-  if board[i-1]==tileStates.ghost then
+  if has_value(ghostAndCurse, board[i-1]) then
    count+=1
   end
  end
  if rightExists then
   -- ghost to the right
-  if board[i+1]==tileStates.ghost then
+  if has_value(ghostAndCurse, board[i+1]) then
    count+=1
   end
  end
  if aboveExists and leftExists then
   -- ghost to the upper left
-  if board[i-boardWidth-1]==tileStates.ghost then
+  if has_value(ghostAndCurse, board[i-boardWidth-1]) then
    count+=1
   end
  end
  if aboveExists and rightExists then
   -- ghost to the upper right
-  if board[i-boardWidth+1]==tileStates.ghost then
+  if has_value(ghostAndCurse, board[i-boardWidth+1]) then
    count+=1
   end
  end
  if belowExists and leftExists then
   -- ghost to the lower left
-  if board[i+boardWidth-1]==tileStates.ghost then
+  if has_value(ghostAndCurse, board[i+boardWidth-1]) then
    count+=1
   end
  end
  if belowExists and rightExists then
   -- ghost to the lower right
-  if board[i+boardWidth+1]==tileStates.ghost then
+  if has_value(ghostAndCurse, board[i+boardWidth+1]) then
    count+=1
   end
  end
