@@ -13,7 +13,7 @@ function _init()
  tileWidth=12
  tileHeight=16
  board={
-  3,0,0,0,3,3,0,
+  3,6,0,0,3,3,0,
   0,0,3,0,0,0,0,
   0,0,0,0,0,0,0,
   0,0,0,3,0,0,0,
@@ -32,12 +32,21 @@ function _draw()
   local tx=flr((i-1)%boardWidth)*tileWidth+boardOffsetX
   -- we use the lua backslash here to divide and floor at the same time
   local ty=flr((i-1)\boardWidth)*tileHeight+boardOffsetY
+
+		-- if hidden tile
   if board[i]==tileStates.empty or board[i]==tileStates.ghost or board[i]==tileStates.curse then
    spr(1, tx, ty)
    spr(2, tx, ty+8)
+
+		-- if revealed tile
   elseif board[i]==tileStates.emptyRevealed or board[i]==tileStates.ghostRevealed or board[i]==tileStates.curseRevealed then
    spr(3, tx, ty)
    spr(4, tx, ty+8)
+   if board[i]==tileStates.ghostRevealed then
+    spr(17, tx, ty+1)
+   elseif board[i]==tileStates.curseRevealed then
+    spr(18, tx, ty)
+   end
   end
   
   -- spr(2, flr((i-1)%boardWidth)*8, flr((i-1)%boardHeight)*13+8)
@@ -53,7 +62,8 @@ function _draw()
 
  local cx=flr((cursor-1)%boardWidth)*tileWidth+boardOffsetX
  local cy=flr((cursor-1)\boardWidth)*tileHeight+boardOffsetY
- spr(17, cx-4, cy+2)
+--  spr(17, cx-4, cy+2)
+ spr(5, cx-3, cy+2, 2, 2)
 end
    
 function _update()
