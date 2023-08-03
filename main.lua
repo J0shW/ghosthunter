@@ -26,7 +26,10 @@ function _init()
 
  cursor=1
 
- gameStates={playing=0, won=1, lost=2}
+ gameStates={startMenu=0, playing=1, won=2, lost=3}
+ gamestate=gameStates.startMenu
+ numMines=10
+ t=0
 end
    
 function _draw()
@@ -48,115 +51,143 @@ function _draw()
  -- fillp(0)
 
  -- switch display based on gamestate
- if gamestate==gameStates.playing then
-  -- drawBoard()
- elseif gamestate==gameStates.won then
-  print("you won!", 45, 10, 7)
- elseif gamestate==gameStates.lost then
-  print("you lost!", 45, 10, 7)
+ if gamestate==gameStates.startMenu then
+  local title="ghost hunter"
+  local btntxt="start"
+  print(title,hcenter(title),vcenter(title)-10,7)
+  print(btntxt, hcenter(btntxt), vcenter(btntxt)+10, 2)
+  circfill(hcenter(btntxt)-5,vcenter(btntxt)+12, 1, t%30==1 and 7 or 2)
  end
+ if gamestate!=gameStates.startMenu then
+  -- drawBoard()
+  for i=1,#board do
+   local tx=flr((i-1)%boardWidth)*tileWidth+boardOffsetX
+   -- we use the lua backslash here to divide and floor at the same time
+   local ty=flr((i-1)\boardWidth)*tileHeight+boardOffsetY
 
- for i=1,#board do
-  local tx=flr((i-1)%boardWidth)*tileWidth+boardOffsetX
-  -- we use the lua backslash here to divide and floor at the same time
-  local ty=flr((i-1)\boardWidth)*tileHeight+boardOffsetY
+   -- if hidden tile
+   if board[i]!=tileStates.emptyRevealed and board[i]!=tileStates.ghostRevealed and board[i]!=tileStates.curseRevealed then
+    spr(1, tx, ty)
+    spr(2, tx, ty+8)
 
-		-- if hidden tile
-  if board[i]!=tileStates.emptyRevealed and board[i]!=tileStates.ghostRevealed and board[i]!=tileStates.curseRevealed then
-   spr(1, tx, ty)
-   spr(2, tx, ty+8)
+   -- if revealed tile
+   elseif board[i]==tileStates.emptyRevealed or board[i]==tileStates.ghostRevealed or board[i]==tileStates.curseRevealed then
+    spr(3, tx, ty)
+    spr(4, tx, ty+8)
+    if board[i]==tileStates.ghostRevealed then
+     spr(17, tx, ty+1)
+    elseif board[i]==tileStates.curseRevealed then
+     spr(18, tx, ty)
+    end
+   end
+   
+   -- spr(2, flr((i-1)%boardWidth)*8, flr((i-1)%boardHeight)*13+8)
+   -- print(board[i], tx+2, ty+3, 7)
 
-		-- if revealed tile
-  elseif board[i]==tileStates.emptyRevealed or board[i]==tileStates.ghostRevealed or board[i]==tileStates.curseRevealed then
-   spr(3, tx, ty)
-   spr(4, tx, ty+8)
-   if board[i]==tileStates.ghostRevealed then
-    spr(17, tx, ty+1)
-   elseif board[i]==tileStates.curseRevealed then
-    spr(18, tx, ty)
+   if board[i]==tileStates.emptyRevealed then
+    countNeighbors(i, tx+3, ty+3)
+   end
+   if board[i]==tileStates.emptyFlagged or board[i]==tileStates.ghostFlagged or board[i]==tileStates.curseFlagged then
+    spr(19, tx+1, ty-6)
    end
   end
-  
-  -- spr(2, flr((i-1)%boardWidth)*8, flr((i-1)%boardHeight)*13+8)
-  -- print(board[i], tx+2, ty+3, 7)
 
-  if board[i]==tileStates.emptyRevealed then
-   countNeighbors(i, tx+3, ty+3)
-  end
-  if board[i]==tileStates.emptyFlagged or board[i]==tileStates.ghostFlagged or board[i]==tileStates.curseFlagged then
-   spr(19, tx+1, ty-6)
-  end
+  local cx=flr((cursor-1)%boardWidth)*tileWidth+boardOffsetX
+  local cy=flr((cursor-1)\boardWidth)*tileHeight+boardOffsetY
+  --  spr(17, cx-4, cy+2)
+  spr(5, cx-3, cy+2, 2, 2)
  end
-
- local cx=flr((cursor-1)%boardWidth)*tileWidth+boardOffsetX
- local cy=flr((cursor-1)\boardWidth)*tileHeight+boardOffsetY
---  spr(17, cx-4, cy+2)
- spr(5, cx-3, cy+2, 2, 2)
+ if gamestate==gameStates.won then
+  local title="you won!"
+  print(title, hcenter(title), 10, 7)
+  local btntxt="play again?"
+  print(btntxt, hcenter(btntxt), 118, 2)
+ end
+ if gamestate==gameStates.lost then
+  local title="you lost!"
+  print(title, hcenter(title), 10, 7)
+  local btntxt="play again?"
+  print(btntxt, hcenter(btntxt), 118, 2)
+ end
 end
    
 function _update()
- -- win check
- local win=true
- for i=1,#board do
-  -- if there are any empty tiles or ghost tiles left, the player hasn't won yet
-  if board[i]==tileStates.empty or board[i]==tileStates.ghost then
-   win=false
-  end
- end
- if win then
-  gamestate=gameStates.won
- end
+ t+=1
 
- -- lose check
- local lose=false
- for i=1,#board do
-  -- if there are any curses revealed, the player has lost
-  if board[i]==tileStates.curseRevealed then
-   lose=true
+ if gamestate==gameStates.startMenu then
+  if btnp(❎) then
+   initBoard(4, 4)
+   gamestate=gameStates.playing
   end
- end
- if lose then
-  gamestate=gameStates.lost
- end
+ elseif gamestate==gameStates.won or gamestate==gameStates.lost then
+  if btnp(❎) then
+   initBoard(4, 4)
+   gamestate=gameStates.playing
+  end
+ elseif gamestate==gameStates.playing then
+  -- win check
+  local win=true
+  for i=1,#board do
+   -- if there are any empty tiles or ghost tiles left, the player hasn't won yet
+   if board[i]==tileStates.empty or board[i]==tileStates.emptyFlagged or board[i]==tileStates.ghost or board[i]==tileStates.ghostFlagged then
+    win=false
+   end
+  end
+  if win then
+   gamestate=gameStates.won
+  end
 
- local aboveExists=cursor>boardWidth
- local belowExists=cursor<=(boardWidth*boardHeight)-boardWidth
- local leftExists=cursor%boardWidth!=1
- local rightExists=cursor%boardWidth!=0
- if btnp(⬆️) then
-  cursor=aboveExists and cursor-boardWidth or (boardWidth*boardHeight)-(boardWidth-cursor)
- end
- if btnp(⬇️) then
-  cursor=belowExists and cursor+boardWidth or ((cursor-1)%boardWidth)+1
- end
- if btnp(⬅️) then
-  cursor=leftExists and cursor-1 or cursor+(boardWidth-1)
- end
- if btnp(➡️) then
-  cursor=rightExists and cursor+1 or cursor-(boardWidth-1)
- end
- if btnp(❎) then
-  if board[cursor]==tileStates.empty then
-   board[cursor]=tileStates.emptyFlagged
-  elseif board[cursor]==tileStates.emptyFlagged then
-   board[cursor]=tileStates.empty
-  elseif board[cursor]==tileStates.ghost then
-   board[cursor]=tileStates.ghostFlagged
-  elseif board[cursor]==tileStates.ghostFlagged then
-   board[cursor]=tileStates.ghost
-  elseif board[cursor]==tileStates.curse then
-   board[cursor]=tileStates.curseFlagged
-  elseif board[cursor]==tileStates.curseFlagged then
-   board[cursor]=tileStates.curse
+  -- lose check
+  local lose=false
+  for i=1,#board do
+   -- if there are any curses revealed, the player has lost
+   if board[i]==tileStates.curseRevealed then
+    lose=true
+   end
   end
- end
- if btnp(🅾️) then
-  if board[cursor]==tileStates.empty or board[cursor]==tileStates.emptyFlagged then
-   board[cursor]=tileStates.emptyRevealed
-  elseif board[cursor]==tileStates.ghost or board[cursor]==tileStates.ghostFlagged then
-   board[cursor]=tileStates.ghostRevealed
-  elseif board[cursor]==tileStates.curse or board[cursor]==tileStates.curseFlagged then
-   board[cursor]=tileStates.curseRevealed
+  if lose then
+   gamestate=gameStates.lost
+  end
+
+  local aboveExists=cursor>boardWidth
+  local belowExists=cursor<=(boardWidth*boardHeight)-boardWidth
+  local leftExists=cursor%boardWidth!=1
+  local rightExists=cursor%boardWidth!=0
+  if btnp(⬆️) then
+   cursor=aboveExists and cursor-boardWidth or (boardWidth*boardHeight)-(boardWidth-cursor)
+  end
+  if btnp(⬇️) then
+   cursor=belowExists and cursor+boardWidth or ((cursor-1)%boardWidth)+1
+  end
+  if btnp(⬅️) then
+   cursor=leftExists and cursor-1 or cursor+(boardWidth-1)
+  end
+  if btnp(➡️) then
+   cursor=rightExists and cursor+1 or cursor-(boardWidth-1)
+  end
+  if btnp(❎) then
+   if board[cursor]==tileStates.empty then
+    board[cursor]=tileStates.emptyFlagged
+   elseif board[cursor]==tileStates.emptyFlagged then
+    board[cursor]=tileStates.empty
+   elseif board[cursor]==tileStates.ghost then
+    board[cursor]=tileStates.ghostFlagged
+   elseif board[cursor]==tileStates.ghostFlagged then
+    board[cursor]=tileStates.ghost
+   elseif board[cursor]==tileStates.curse then
+    board[cursor]=tileStates.curseFlagged
+   elseif board[cursor]==tileStates.curseFlagged then
+    board[cursor]=tileStates.curse
+   end
+  end
+  if btnp(🅾️) then
+   if board[cursor]==tileStates.empty or board[cursor]==tileStates.emptyFlagged then
+    board[cursor]=tileStates.emptyRevealed
+   elseif board[cursor]==tileStates.ghost or board[cursor]==tileStates.ghostFlagged then
+    board[cursor]=tileStates.ghostRevealed
+   elseif board[cursor]==tileStates.curse or board[cursor]==tileStates.curseFlagged then
+    board[cursor]=tileStates.curseRevealed
+   end
   end
  end
 end
@@ -168,6 +199,27 @@ function has_value (tab, val)
   end
  end
  return false
+end
+
+function initBoard(ghostCount, curseCount)
+ board={}
+ for i=1,boardWidth*boardHeight do
+  board[i]=tileStates.empty
+ end
+ for i=1,ghostCount do
+  local ghostPos=flr(rnd(boardWidth*boardHeight))+1
+  while board[ghostPos]!=tileStates.empty do
+   ghostPos=flr(rnd(boardWidth*boardHeight))+1
+  end
+  board[ghostPos]=tileStates.ghost
+ end
+ for i=1,curseCount do
+  local cursePos=flr(rnd(boardWidth*boardHeight))+1
+  while board[cursePos]!=tileStates.empty do
+   cursePos=flr(rnd(boardWidth*boardHeight))+1
+  end
+  board[cursePos]=tileStates.curse
+ end
 end
 
 function countNeighbors(i, x, y)
@@ -229,4 +281,19 @@ function countNeighbors(i, x, y)
  if count>0 then
   print(count, x, y, 7)
  end
+end
+
+function hcenter(s)
+ -- screen center minus the
+ -- string length times the 
+ -- pixels in a char's width,
+ -- cut in half
+ return 64-#s*2
+end
+
+function vcenter(s)
+ -- screen center minus the
+ -- string height in pixels,
+ -- cut in half
+ return 61
 end
