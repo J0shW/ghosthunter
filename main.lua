@@ -56,7 +56,8 @@ function _draw()
   local btntxt="start"
   print(title,hcenter(title),vcenter(title)-10,7)
   print(btntxt, hcenter(btntxt), vcenter(btntxt)+10, 2)
-  circfill(hcenter(btntxt)-5,vcenter(btntxt)+12, 1, t%30==1 and 7 or 2)
+  spr(32, hcenter(btntxt)-10, vcenter(btntxt)+10)
+  -- circfill(hcenter(btntxt)-5,vcenter(btntxt)+12, 1, t%30==1 and 7 or 2)
  end
  if gamestate!=gameStates.startMenu then
   -- drawBoard()
@@ -109,32 +110,33 @@ function _draw()
   rectfill(16, 121, 30, 128, 14)
   spr(7, 17, 122)
   print(numCurses < 10 and "0"..numCurses or numCurses, 23, 122, 7)
-  -- show controls
   rectfill(32, 121, 128, 128, 15)
-  spr(38, 33, 122)
-  print("move", 41, 122, 5)
-  spr(32, 65, 122)
-  print("reveal", 73, 122, 5)
-  spr(33, 104, 122)
-  print("flag", 112, 122, 5)
-  
 
   local cx=flr((cursor-1)%boardWidth)*tileWidth+boardOffsetX
   local cy=flr((cursor-1)\boardWidth)*tileHeight+boardOffsetY
   --  spr(17, cx-4, cy+2)
   spr(5, cx-3, cy+2)
  end
+ if gamestate==gameStates.playing then
+  -- show controls
+  spr(38, 33, 122)
+  print("move", 41, 122, 5)
+  spr(32, 65, 122)
+  print("reveal", 73, 122, 5)
+  spr(33, 104, 122)
+  print("flag", 112, 122, 5)
+ end
  if gamestate==gameStates.won then
   local title="you won!"
   print(title, hcenter(title), 10, 7)
-  local btntxt="play again?"
-  print(btntxt, hcenter(btntxt), 118, 2)
+  spr(32, 55, 122)
+  print("play again?", 63, 122, 5)
  end
  if gamestate==gameStates.lost then
   local title="you lost!"
   print(title, hcenter(title), 10, 7)
-  local btntxt="play again?"
-  print(btntxt, hcenter(btntxt), 118, 2)
+  spr(32, 55, 122)
+  print("play again?", 63, 122, 5)
  end
 end
    
@@ -142,12 +144,12 @@ function _update()
  t+=1
 
  if gamestate==gameStates.startMenu then
-  if btnp(❎) then
+  if btnp(🅾️) then
    initBoard(4, 4)
    gamestate=gameStates.playing
   end
  elseif gamestate==gameStates.won or gamestate==gameStates.lost then
-  if btnp(❎) then
+  if btnp(🅾️) then
    initBoard(4, 4)
    gamestate=gameStates.playing
   end
