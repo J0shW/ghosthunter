@@ -92,10 +92,37 @@ function _draw()
    end
   end
 
+  -- draw stats row at bottom with 8 height. Number of ghosts, number of curses
+  local numGhosts=0
+  local numCurses=0
+  for i=1,#board do
+   if board[i]==tileStates.ghost or board[i]==tileStates.ghostFlagged then
+    numGhosts+=1
+   elseif board[i]==tileStates.curse or board[i]==tileStates.curseFlagged then
+    numCurses+=1
+   end
+  end
+  rectfill(0, 120, 128, 128, 1)
+  rectfill(0, 121, 14, 128, 12)
+  spr(6, 1, 122)
+  print(numGhosts < 10 and "0"..numGhosts or numGhosts, 7, 122, 7)
+  rectfill(16, 121, 30, 128, 14)
+  spr(7, 17, 122)
+  print(numCurses < 10 and "0"..numCurses or numCurses, 23, 122, 7)
+  -- show controls
+  rectfill(32, 121, 128, 128, 15)
+  spr(38, 33, 122)
+  print("move", 41, 122, 5)
+  spr(32, 65, 122)
+  print("reveal", 73, 122, 5)
+  spr(33, 104, 122)
+  print("flag", 112, 122, 5)
+  
+
   local cx=flr((cursor-1)%boardWidth)*tileWidth+boardOffsetX
   local cy=flr((cursor-1)\boardWidth)*tileHeight+boardOffsetY
   --  spr(17, cx-4, cy+2)
-  spr(5, cx-3, cy+2, 2, 2)
+  spr(5, cx-3, cy+2)
  end
  if gamestate==gameStates.won then
   local title="you won!"
