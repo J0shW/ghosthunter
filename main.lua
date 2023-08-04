@@ -24,6 +24,14 @@ function _init()
  boardOffsetX=20
  boardOffsetY=20
 
+ -- when an upgrade is unavailable, it is set to nil
+ -- when an upgrade is available, it is set to true
+ -- when the upgrade is used, it is set to false
+ upgrades={}
+ for i=1,boardHeight do
+  add(upgrades, nil)
+ end
+
  cursor=1
 
  gameStates={startMenu=0, playing=1, won=2, lost=3}
@@ -60,7 +68,12 @@ function _draw()
   -- circfill(hcenter(btntxt)-5,vcenter(btntxt)+12, 1, t%30==1 and 7 or 2)
  end
  if gamestate!=gameStates.startMenu then
-  -- drawBoard()
+  -- center board on screen
+  local boardWidthPixels=boardWidth*tileWidth
+  local boardHeightPixels=boardHeight*tileHeight
+  local boardOffsetX=(128-boardWidthPixels)/2
+  local boardOffsetY=(128-boardHeightPixels)/2
+
   for i=1,#board do
    local tx=flr((i-1)%boardWidth)*tileWidth+boardOffsetX
    -- we use the lua backslash here to divide and floor at the same time
@@ -70,7 +83,6 @@ function _draw()
    if board[i]!=tileStates.emptyRevealed and board[i]!=tileStates.ghostRevealed and board[i]!=tileStates.curseRevealed then
     spr(1, tx, ty)
     spr(2, tx, ty+8)
-
    -- if revealed tile
    elseif board[i]==tileStates.emptyRevealed or board[i]==tileStates.ghostRevealed or board[i]==tileStates.curseRevealed then
     spr(3, tx, ty)
@@ -82,14 +94,20 @@ function _draw()
     end
    end
    
-   -- spr(2, flr((i-1)%boardWidth)*8, flr((i-1)%boardHeight)*13+8)
-   -- print(board[i], tx+2, ty+3, 7)
-
    if board[i]==tileStates.emptyRevealed then
     countNeighbors(i, tx+3, ty+3)
    end
    if board[i]==tileStates.emptyFlagged or board[i]==tileStates.ghostFlagged or board[i]==tileStates.curseFlagged then
     spr(19, tx+1, ty-6)
+   end
+  end
+
+  for i=1,boardHeight do
+   -- if row is revealed, draw an upgrade button
+   if upgrades[i]==true then
+    spr(10, boardWidthPixels+boardOffsetX, flr((i-1)%boardWidth)*tileHeight+boardOffsetY+1, 2, 2)
+   elseif upgrades[i]==nil then
+    spr(8, boardWidthPixels+boardOffsetX, flr((i-1)%boardWidth)*tileHeight+boardOffsetY+1, 2, 2)
    end
   end
 
@@ -112,10 +130,15 @@ function _draw()
   print(numCurses < 10 and "0"..numCurses or numCurses, 23, 122, 7)
   rectfill(32, 121, 128, 128, 15)
 
-  local cx=flr((cursor-1)%boardWidth)*tileWidth+boardOffsetX
-  local cy=flr((cursor-1)\boardWidth)*tileHeight+boardOffsetY
-  --  spr(17, cx-4, cy+2)
-  spr(5, cx-3, cy+2)
+  if activeUpgradeRow!=nil then
+   local tx=boardWidthPixels+boardOffsetX
+   local ty=flr((activeUpgradeRow-1)%boardWidth)*tileHeight+boardOffsetY+1
+   spr(5, tx, ty)
+  else
+   local cx=flr((cursor-1)%boardWidth)*tileWidth+boardOffsetX
+   local cy=flr((cursor-1)\boardWidth)*tileHeight+boardOffsetY
+   spr(5, cx-3, cy+2)
+  end
  end
  if gamestate==gameStates.playing then
   -- show controls
@@ -128,13 +151,13 @@ function _draw()
  end
  if gamestate==gameStates.won then
   local title="you won!"
-  print(title, hcenter(title), 10, 7)
+  print(title, hcenter(title), 8, 7)
   spr(32, 55, 122)
   print("play again?", 63, 122, 5)
  end
  if gamestate==gameStates.lost then
   local title="you lost!"
-  print(title, hcenter(title), 10, 7)
+  print(title, hcenter(title), 8, 7)
   spr(32, 55, 122)
   print("play again?", 63, 122, 5)
  end
@@ -164,6 +187,7 @@ function _update()
   end
   if win then
    gamestate=gameStates.won
+   sfx(3)
   end
 
   -- lose check
@@ -189,10 +213,20 @@ function _update()
    cursor=belowExists and cursor+boardWidth or ((cursor-1)%boardWidth)+1
   end
   if btnp(⬅️) then
-   cursor=leftExists and cursor-1 or cursor+(boardWidth-1)
+   if activeUpgradeRow!=nil then
+    activeUpgradeRow=nil
+   else
+    cursor=leftExists and cursor-1 or cursor+(boardWidth-1)
+   end
   end
   if btnp(➡️) then
-   cursor=rightExists and cursor+1 or cursor-(boardWidth-1)
+   -- get row of cursor
+   local cursorRow=flr((cursor-1)/boardWidth)+1
+   if rightExists==false and upgrades[cursorRow]==true then
+    activeUpgradeRow=cursorRow
+   else
+    cursor=rightExists and cursor+1 or cursor-(boardWidth-1)
+   end
   end
   if btnp(❎) then
    if board[cursor]==tileStates.empty then
@@ -210,12 +244,48 @@ function _update()
    end
   end
   if btnp(🅾️) then
-   if board[cursor]==tileStates.empty or board[cursor]==tileStates.emptyFlagged then
-    board[cursor]=tileStates.emptyRevealed
-   elseif board[cursor]==tileStates.ghost or board[cursor]==tileStates.ghostFlagged then
-    board[cursor]=tileStates.ghostRevealed
-   elseif board[cursor]==tileStates.curse or board[cursor]==tileStates.curseFlagged then
-    board[cursor]=tileStates.curseRevealed
+   if activeUpgradeRow!=nil then
+    if upgrades[activeUpgradeRow]==true then
+     -- find a ghost and reveal it
+     for i=1,#board do
+      if board[i]==tileStates.ghost or board[i]==tileStates.ghostFlagged then
+       board[i]=tileStates.ghostRevealed
+       -- clear the upgrade
+       upgrades[activeUpgradeRow]=false
+       sfx(2)
+       break
+      end
+     end
+    end
+    activeUpgradeRow=nil
+   else
+    if board[cursor]==tileStates.empty or board[cursor]==tileStates.emptyFlagged then
+     board[cursor]=tileStates.emptyRevealed
+     sfx(0)
+    elseif board[cursor]==tileStates.ghost or board[cursor]==tileStates.ghostFlagged then
+     board[cursor]=tileStates.ghostRevealed
+     sfx(2)
+    elseif board[cursor]==tileStates.curse or board[cursor]==tileStates.curseFlagged then
+     board[cursor]=tileStates.curseRevealed
+     sfx(1)
+    end
+   end
+  end
+
+  -- check if all tiles in a row are revealed
+  for i=1,boardHeight do
+   if upgrades[i]==nil then
+    local rowStart=(i-1)*boardWidth+1
+    local rowEnd=rowStart+boardWidth-1
+    local rowRevealed=true
+    for j=rowStart,rowEnd do
+     if board[j]!=tileStates.emptyRevealed and board[j]!=tileStates.ghostRevealed and board[j]!=tileStates.curseRevealed then
+      rowRevealed=false
+     end
+    end
+    if rowRevealed then
+     upgrades[i]=true
+    end
    end
   end
  end
@@ -231,6 +301,10 @@ function has_value (tab, val)
 end
 
 function initBoard(ghostCount, curseCount)
+ -- clear upgrades
+ for i=1,boardHeight do
+  upgrades[i]=nil
+ end
  board={}
  for i=1,boardWidth*boardHeight do
   board[i]=tileStates.empty
