@@ -95,7 +95,10 @@ function _draw()
    end
    
    if board[i]==tileStates.emptyRevealed then
-    countNeighbors(i, tx+3, ty+3)
+    local count = countNeighbors(i)
+    if count>0 then
+     print(count, tx+3, ty+3, 7)
+    end
    end
    if board[i]==tileStates.emptyFlagged or board[i]==tileStates.ghostFlagged or board[i]==tileStates.curseFlagged then
     spr(19, tx+1, ty-6)
@@ -260,13 +263,13 @@ function _update()
     activeUpgradeRow=nil
    else
     if board[cursor]==tileStates.empty or board[cursor]==tileStates.emptyFlagged then
-     board[cursor]=tileStates.emptyRevealed
+     revealTile(cursor)
      sfx(0)
     elseif board[cursor]==tileStates.ghost or board[cursor]==tileStates.ghostFlagged then
-     board[cursor]=tileStates.ghostRevealed
+     revealTile(cursor)
      sfx(2)
     elseif board[cursor]==tileStates.curse or board[cursor]==tileStates.curseFlagged then
-     board[cursor]=tileStates.curseRevealed
+     revealTile(cursor)
      sfx(1)
     end
    end
@@ -325,7 +328,7 @@ function initBoard(ghostCount, curseCount)
  end
 end
 
-function countNeighbors(i, x, y)
+function countNeighbors(i)
  local count=0
  local aboveExists=i>boardWidth
  local belowExists=i<=(boardWidth*boardHeight)-boardWidth
@@ -381,8 +384,67 @@ function countNeighbors(i, x, y)
   end
  end
 
- if count>0 then
-  print(count, x, y, 7)
+ return count
+end
+
+-- reveal the tile at the given index
+-- if the tile is empty and has zero neighbors, reveal other empty tiles around it
+function revealTile(tileIndex)
+ if board[tileIndex]==tileStates.ghost or board[tileIndex]==tileStates.ghostFlagged then
+  board[tileIndex]=tileStates.ghostRevealed
+ elseif board[tileIndex]==tileStates.curse or board[tileIndex]==tileStates.curseFlagged then
+  board[tileIndex]=tileStates.curseRevealed
+ elseif board[tileIndex]==tileStates.empty or board[tileIndex]==tileStates.emptyFlagged then
+  board[tileIndex]=tileStates.emptyRevealed
+
+  -- if it has zero neighbors, reveal the neighbors
+  if countNeighbors(tileIndex)==0 then
+   local aboveExists=tileIndex>boardWidth
+   local belowExists=tileIndex<=(boardWidth*boardHeight)-boardWidth
+   local leftExists=tileIndex%boardWidth!=1
+   local rightExists=tileIndex%boardWidth!=0
+
+   if aboveExists then
+    if board[tileIndex-boardWidth]==tileStates.empty then
+     revealTile(tileIndex-boardWidth)
+    end
+   end
+   if belowExists then
+    if board[tileIndex+boardWidth]==tileStates.empty then
+     revealTile(tileIndex+boardWidth)
+    end
+   end
+   if leftExists then
+    if board[tileIndex-1]==tileStates.empty then
+     revealTile(tileIndex-1)
+    end
+   end
+   if rightExists then
+    if board[tileIndex+1]==tileStates.empty then
+     revealTile(tileIndex+1)
+    end
+   end
+   if aboveExists and leftExists then
+    if board[tileIndex-boardWidth-1]==tileStates.empty then
+     revealTile(tileIndex-boardWidth-1)
+    end
+   end
+   if aboveExists and rightExists then
+    if board[tileIndex-boardWidth+1]==tileStates.empty then
+     revealTile(tileIndex-boardWidth+1)
+    end
+   end
+   if belowExists and leftExists then
+    if board[tileIndex+boardWidth-1]==tileStates.empty then
+     revealTile(tileIndex+boardWidth-1)
+    end
+   end
+   if belowExists and rightExists then
+    if board[tileIndex+boardWidth+1]==tileStates.empty then
+     revealTile(tileIndex+boardWidth+1)
+    end
+   end
+  end
  end
 end
 
