@@ -38,6 +38,7 @@ function _init()
  gamestate=gameStates.startMenu
  numMines=10
  t=0
+ firstMove=true -- this is used to make sure the first move is not a mine
 end
    
 function _draw()
@@ -171,12 +172,12 @@ function _update()
 
  if gamestate==gameStates.startMenu then
   if btnp(🅾️) then
-   initBoard(4, 4)
+   clearBoard()
    gamestate=gameStates.playing
   end
  elseif gamestate==gameStates.won or gamestate==gameStates.lost then
   if btnp(🅾️) then
-   initBoard(4, 4)
+   clearBoard()
    gamestate=gameStates.playing
   end
  elseif gamestate==gameStates.playing then
@@ -205,30 +206,26 @@ function _update()
    gamestate=gameStates.lost
   end
 
-  local aboveExists=cursor>boardWidth
-  local belowExists=cursor<=(boardWidth*boardHeight)-boardWidth
-  local leftExists=cursor%boardWidth!=1
-  local rightExists=cursor%boardWidth!=0
   if btnp(⬆️) then
-   cursor=aboveExists and cursor-boardWidth or (boardWidth*boardHeight)-(boardWidth-cursor)
+   cursor=aboveExists(cursor) and cursor-boardWidth or (boardWidth*boardHeight)-(boardWidth-cursor)
   end
   if btnp(⬇️) then
-   cursor=belowExists and cursor+boardWidth or ((cursor-1)%boardWidth)+1
+   cursor=belowExists(cursor) and cursor+boardWidth or ((cursor-1)%boardWidth)+1
   end
   if btnp(⬅️) then
    if activeUpgradeRow!=nil then
     activeUpgradeRow=nil
    else
-    cursor=leftExists and cursor-1 or cursor+(boardWidth-1)
+    cursor=leftExists(cursor) and cursor-1 or cursor+(boardWidth-1)
    end
   end
   if btnp(➡️) then
    -- get row of cursor
    local cursorRow=flr((cursor-1)/boardWidth)+1
-   if rightExists==false and upgrades[cursorRow]==true then
+   if rightExists(cursor)==false and upgrades[cursorRow]==true then
     activeUpgradeRow=cursorRow
    else
-    cursor=rightExists and cursor+1 or cursor-(boardWidth-1)
+    cursor=rightExists(cursor) and cursor+1 or cursor-(boardWidth-1)
    end
   end
   if btnp(❎) then
@@ -262,7 +259,10 @@ function _update()
     end
     activeUpgradeRow=nil
    else
-    if board[cursor]==tileStates.empty or board[cursor]==tileStates.emptyFlagged then
+    if firstMove==true then
+     firstMove=false
+     initBoard(cursor, 4, 4)
+    elseif board[cursor]==tileStates.empty or board[cursor]==tileStates.emptyFlagged then
      revealTile(cursor)
      sfx(0)
     elseif board[cursor]==tileStates.ghost or board[cursor]==tileStates.ghostFlagged then
@@ -294,16 +294,7 @@ function _update()
  end
 end
 
-function has_value (tab, val)
- for index, value in ipairs(tab) do
-  if value == val then
-   return true
-  end
- end
- return false
-end
-
-function initBoard(ghostCount, curseCount)
+function clearBoard()
  -- clear upgrades
  for i=1,boardHeight do
   upgrades[i]=nil
@@ -312,72 +303,102 @@ function initBoard(ghostCount, curseCount)
  for i=1,boardWidth*boardHeight do
   board[i]=tileStates.empty
  end
+ firstMove=true
+end
+
+function initBoard(firstMovePos, ghostCount, curseCount)
+ -- create array of firstMovePos and its neighbors including diagonals
+ local firstMovePosNeighbors={firstMovePos}
+ if aboveExists(firstMovePos) then
+  add(firstMovePosNeighbors, firstMovePos-boardWidth)
+ end
+ if belowExists(firstMovePos) then
+  add(firstMovePosNeighbors, firstMovePos+boardWidth)
+ end
+ if leftExists(firstMovePos) then
+  add(firstMovePosNeighbors, firstMovePos-1)
+ end
+ if rightExists(firstMovePos) then
+  add(firstMovePosNeighbors, firstMovePos+1)
+ end
+ if aboveExists(firstMovePos) and leftExists(firstMovePos) then
+  add(firstMovePosNeighbors, firstMovePos-boardWidth-1)
+ end
+ if aboveExists(firstMovePos) and rightExists(firstMovePos) then
+  add(firstMovePosNeighbors, firstMovePos-boardWidth+1)
+ end
+ if belowExists(firstMovePos) and leftExists(firstMovePos) then
+  add(firstMovePosNeighbors, firstMovePos+boardWidth-1)
+ end
+ if belowExists(firstMovePos) and rightExists(firstMovePos) then
+  add(firstMovePosNeighbors, firstMovePos+boardWidth+1)
+ end
+
  for i=1,ghostCount do
   local ghostPos=flr(rnd(boardWidth*boardHeight))+1
-  while board[ghostPos]!=tileStates.empty do
+  while has_value(firstMovePosNeighbors, ghostPos) or board[ghostPos]!=tileStates.empty do
    ghostPos=flr(rnd(boardWidth*boardHeight))+1
   end
   board[ghostPos]=tileStates.ghost
  end
  for i=1,curseCount do
   local cursePos=flr(rnd(boardWidth*boardHeight))+1
-  while board[cursePos]!=tileStates.empty do
+  while has_value(firstMovePosNeighbors, cursePos) or board[cursePos]!=tileStates.empty do
    cursePos=flr(rnd(boardWidth*boardHeight))+1
   end
   board[cursePos]=tileStates.curse
  end
+
+ -- now that the board is set up, reveal the first tile
+ revealTile(firstMovePos)
 end
 
 function countNeighbors(i)
  local count=0
- local aboveExists=i>boardWidth
- local belowExists=i<=(boardWidth*boardHeight)-boardWidth
- local leftExists=i%boardWidth!=1
- local rightExists=i%boardWidth!=0
 
- if aboveExists then
+ if aboveExists(i) then
   -- ghost above
   if has_value(ghostAndCurse, board[i-boardWidth]) then
    count+=1
   end
  end
- if belowExists then
+ if belowExists(i) then
   -- ghost below
   if has_value(ghostAndCurse, board[i+boardWidth]) then
    count+=1
   end
  end
- if leftExists then
+ if leftExists(i) then
   -- ghost to the left
   if has_value(ghostAndCurse, board[i-1]) then
    count+=1
   end
  end
- if rightExists then
+ if rightExists(i) then
   -- ghost to the right
   if has_value(ghostAndCurse, board[i+1]) then
    count+=1
   end
  end
- if aboveExists and leftExists then
+ if aboveExists(i) and leftExists(i) then
   -- ghost to the upper left
   if has_value(ghostAndCurse, board[i-boardWidth-1]) then
    count+=1
   end
  end
- if aboveExists and rightExists then
+ if aboveExists(i) and rightExists(i) then
   -- ghost to the upper right
   if has_value(ghostAndCurse, board[i-boardWidth+1]) then
    count+=1
   end
  end
- if belowExists and leftExists then
+ if belowExists(i) and leftExists(i) then
   -- ghost to the lower left
   if has_value(ghostAndCurse, board[i+boardWidth-1]) then
    count+=1
   end
  end
- if belowExists and rightExists then
+ if belowExists(i) and rightExists(i) then
   -- ghost to the lower right
   if has_value(ghostAndCurse, board[i+boardWidth+1]) then
    count+=1
@@ -399,53 +420,74 @@ function revealTile(tileIndex)
 
   -- if it has zero neighbors, reveal the neighbors
   if countNeighbors(tileIndex)==0 then
-   local aboveExists=tileIndex>boardWidth
-   local belowExists=tileIndex<=(boardWidth*boardHeight)-boardWidth
-   local leftExists=tileIndex%boardWidth!=1
-   local rightExists=tileIndex%boardWidth!=0
 
-   if aboveExists then
+   if aboveExists(tileIndex) then
     if board[tileIndex-boardWidth]==tileStates.empty then
      revealTile(tileIndex-boardWidth)
     end
    end
-   if belowExists then
+   if belowExists(tileIndex) then
     if board[tileIndex+boardWidth]==tileStates.empty then
      revealTile(tileIndex+boardWidth)
     end
    end
-   if leftExists then
+   if leftExists(tileIndex) then
     if board[tileIndex-1]==tileStates.empty then
      revealTile(tileIndex-1)
     end
    end
-   if rightExists then
+   if rightExists(tileIndex) then
     if board[tileIndex+1]==tileStates.empty then
      revealTile(tileIndex+1)
     end
    end
-   if aboveExists and leftExists then
+   if aboveExists(tileIndex) and leftExists(tileIndex) then
     if board[tileIndex-boardWidth-1]==tileStates.empty then
      revealTile(tileIndex-boardWidth-1)
     end
    end
-   if aboveExists and rightExists then
+   if aboveExists(tileIndex) and rightExists(tileIndex) then
     if board[tileIndex-boardWidth+1]==tileStates.empty then
      revealTile(tileIndex-boardWidth+1)
     end
    end
-   if belowExists and leftExists then
+   if belowExists(tileIndex) and leftExists(tileIndex) then
     if board[tileIndex+boardWidth-1]==tileStates.empty then
      revealTile(tileIndex+boardWidth-1)
     end
    end
-   if belowExists and rightExists then
+   if belowExists(tileIndex) and rightExists(tileIndex) then
     if board[tileIndex+boardWidth+1]==tileStates.empty then
      revealTile(tileIndex+boardWidth+1)
     end
    end
   end
  end
+end
+
+function aboveExists(i)
+ return i>boardWidth
+end
+
+function belowExists(i)
+ return i<=(boardWidth*boardHeight)-boardWidth
+end
+
+function leftExists(i)
+ return i%boardWidth!=1
+end
+
+function rightExists(i)
+ return i%boardWidth!=0
+end
+
+function has_value (tab, val)
+ for index, value in ipairs(tab) do
+  if value == val then
+   return true
+  end
+ end
+ return false
 end
 
 function hcenter(s)
