@@ -13,16 +13,12 @@ function _init()
  ghostAndCurse={tileStates.ghost, tileStates.ghostFlagged, tileStates.curse, tileStates.curseFlagged}
  tileWidth=12
  tileHeight=16
- board={
-  3,6,0,0,3,3,0,
-  0,0,3,0,0,0,0,
-  0,0,0,0,0,0,0,
-  0,0,0,3,0,0,0,
-  0,0,0,0,0,0,0,
-  0,0,0,3,0,3,3
- }
+ board={}
  boardOffsetX=20
  boardOffsetY=20
+
+ -- table to store curse spread tiles
+ infectedTiles={}
 
  -- when an upgrade is unavailable, it is set to nil
  -- when an upgrade is available, it is set to true
@@ -82,7 +78,12 @@ function _draw()
 
    -- if hidden tile
    if board[i]!=tileStates.emptyRevealed and board[i]!=tileStates.ghostRevealed and board[i]!=tileStates.curseRevealed then
-    spr(1, tx, ty)
+    if infectedTiles[i]>0 then
+     spr(47+infectedTiles[i], tx, ty)
+    else
+     -- draw regular tile
+     spr(1, tx, ty)
+    end
     spr(2, tx, ty+8)
    -- if revealed tile
    elseif board[i]==tileStates.emptyRevealed or board[i]==tileStates.ghostRevealed or board[i]==tileStates.curseRevealed then
@@ -272,6 +273,7 @@ function _update()
      revealTile(cursor)
      sfx(1)
     end
+    spreadCurse()
    end
   end
 
@@ -300,39 +302,18 @@ function clearBoard()
   upgrades[i]=nil
  end
  board={}
+ infectedTiles={}
  for i=1,boardWidth*boardHeight do
   board[i]=tileStates.empty
+  infectedTiles[i]=0
  end
  firstMove=true
 end
 
 function initBoard(firstMovePos, ghostCount, curseCount)
  -- create array of firstMovePos and its neighbors including diagonals
- local firstMovePosNeighbors={firstMovePos}
- if aboveExists(firstMovePos) then
-  add(firstMovePosNeighbors, firstMovePos-boardWidth)
- end
- if belowExists(firstMovePos) then
-  add(firstMovePosNeighbors, firstMovePos+boardWidth)
- end
- if leftExists(firstMovePos) then
-  add(firstMovePosNeighbors, firstMovePos-1)
- end
- if rightExists(firstMovePos) then
-  add(firstMovePosNeighbors, firstMovePos+1)
- end
- if aboveExists(firstMovePos) and leftExists(firstMovePos) then
-  add(firstMovePosNeighbors, firstMovePos-boardWidth-1)
- end
- if aboveExists(firstMovePos) and rightExists(firstMovePos) then
-  add(firstMovePosNeighbors, firstMovePos-boardWidth+1)
- end
- if belowExists(firstMovePos) and leftExists(firstMovePos) then
-  add(firstMovePosNeighbors, firstMovePos+boardWidth-1)
- end
- if belowExists(firstMovePos) and rightExists(firstMovePos) then
-  add(firstMovePosNeighbors, firstMovePos+boardWidth+1)
- end
+ local firstMovePosNeighbors=getListOfNeighbors(firstMovePos)
+ add(firstMovePosNeighbors, firstMovePos)
 
  for i=1,ghostCount do
   local ghostPos=flr(rnd(boardWidth*boardHeight))+1
@@ -463,6 +444,63 @@ function revealTile(tileIndex)
    end
   end
  end
+end
+
+-- spread the curse to a random empty tile adjacent itself
+function spreadCurse()
+ -- choose a random unrevealed curse
+ local cursePos=flr(rnd(boardWidth*boardHeight))+1
+ while board[cursePos]!=tileStates.curse and board[cursePos]!=tileStates.curseFlagged do
+  cursePos=flr(rnd(boardWidth*boardHeight))+1
+ end
+
+ -- an array of the curse's neighbors
+ local cursePosNeighbors=getListOfNeighbors(cursePos)
+ -- shuffle the array
+ for i=1,#cursePosNeighbors do
+  local j=flr(rnd(#cursePosNeighbors))+1
+  local temp=cursePosNeighbors[i]
+  cursePosNeighbors[i]=cursePosNeighbors[j]
+  cursePosNeighbors[j]=temp
+ end
+
+ -- spread the curse to the first empty tile
+ for i=1,#cursePosNeighbors do
+  if board[cursePosNeighbors[i]]==tileStates.empty or board[cursePosNeighbors[i]]==tileStates.emptyFlagged then
+   infectedTiles[cursePosNeighbors[i]]+=1
+   break
+  end
+ end
+end
+
+function getListOfNeighbors(i)
+ -- an array of the tile's neighbors
+ local neighbors={}
+ if aboveExists(i) then
+  add(neighbors, i-boardWidth)
+ end
+ if belowExists(i) then
+  add(neighbors, i+boardWidth)
+ end
+ if leftExists(i) then
+  add(neighbors, i-1)
+ end
+ if rightExists(i) then
+  add(neighbors, i+1)
+ end
+ if aboveExists(i) and leftExists(i) then
+  add(neighbors, i-boardWidth-1)
+ end
+ if aboveExists(i) and rightExists(i) then
+  add(neighbors, i-boardWidth+1)
+ end
+ if belowExists(i) and leftExists(i) then
+  add(neighbors, i+boardWidth-1)
+ end
+ if belowExists(i) and rightExists(i) then
+  add(neighbors, i+boardWidth+1)
+ end
+ return neighbors
 end
 
 function aboveExists(i)
