@@ -78,12 +78,8 @@ function _draw()
 
    -- if hidden tile
    if board[i]!=tileStates.emptyRevealed and board[i]!=tileStates.ghostRevealed and board[i]!=tileStates.curseRevealed then
-    if infectedTiles[i]>0 then
-     spr(47+infectedTiles[i], tx, ty)
-    else
-     -- draw regular tile
-     spr(1, tx, ty)
-    end
+    -- draw regular tile
+    spr(1, tx, ty)
     spr(2, tx, ty+8)
    -- if revealed tile
    elseif board[i]==tileStates.emptyRevealed or board[i]==tileStates.ghostRevealed or board[i]==tileStates.curseRevealed then
@@ -99,7 +95,11 @@ function _draw()
    if board[i]==tileStates.emptyRevealed then
     local count = countNeighbors(i)
     if count>0 then
-     print(count, tx+3, ty+3, 7)
+     if infectedTiles[i]>0 then
+      print(count, tx+3, ty+3, 2)
+     else
+      print(count, tx+3, ty+3, 7)
+     end
     end
    end
    if board[i]==tileStates.emptyFlagged or board[i]==tileStates.ghostFlagged or board[i]==tileStates.curseFlagged then
@@ -467,7 +467,14 @@ function spreadCurse()
  -- spread the curse to the first empty tile
  for i=1,#cursePosNeighbors do
   if board[cursePosNeighbors[i]]==tileStates.empty or board[cursePosNeighbors[i]]==tileStates.emptyFlagged then
-   infectedTiles[cursePosNeighbors[i]]+=1
+   -- if the tile is already infected, turn it into a curse
+   if infectedTiles[cursePosNeighbors[i]]>0 then
+    board[cursePosNeighbors[i]]=tileStates.curse
+    infectedTiles[cursePosNeighbors[i]]=0
+    sfx(4)
+   else
+    infectedTiles[cursePosNeighbors[i]]+=1
+   end
    break
   end
  end
