@@ -455,7 +455,7 @@ function spreadCurse()
  end
 
  -- an array of the curse's neighbors
- local cursePosNeighbors=getListOfNeighbors(cursePos)
+ local cursePosNeighbors=getListOfNeighbors(cursePos, true)
  -- shuffle the array
  for i=1,#cursePosNeighbors do
   local j=flr(rnd(#cursePosNeighbors))+1
@@ -480,7 +480,7 @@ function spreadCurse()
  end
 end
 
-function getListOfNeighbors(i)
+function getListOfNeighbors(i, removeDiagonals)
  -- an array of the tile's neighbors
  local neighbors={}
  if aboveExists(i) then
@@ -495,18 +495,20 @@ function getListOfNeighbors(i)
  if rightExists(i) then
   add(neighbors, i+1)
  end
- if aboveExists(i) and leftExists(i) then
-  add(neighbors, i-boardWidth-1)
- end
- if aboveExists(i) and rightExists(i) then
-  add(neighbors, i-boardWidth+1)
- end
- if belowExists(i) and leftExists(i) then
-  add(neighbors, i+boardWidth-1)
- end
- if belowExists(i) and rightExists(i) then
-  add(neighbors, i+boardWidth+1)
- end
+ if removeDiagonals!=true then
+    if aboveExists(i) and leftExists(i) then
+    add(neighbors, i-boardWidth-1)
+    end
+    if aboveExists(i) and rightExists(i) then
+    add(neighbors, i-boardWidth+1)
+    end
+    if belowExists(i) and leftExists(i) then
+    add(neighbors, i+boardWidth-1)
+    end
+    if belowExists(i) and rightExists(i) then
+    add(neighbors, i+boardWidth+1)
+    end
+end
  return neighbors
 end
 
